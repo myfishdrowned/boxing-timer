@@ -1,0 +1,12 @@
+This is a test file to verify the sounds directory is working.
+
+To add your woosh sound:
+1. Copy your woosh sound file from C:\Program Files (x86)\Boxing-timer-sound
+2. Paste it in this directory (public/sounds/)
+3. Rename it to one of these:
+   - start.mp3 (for round start)
+   - bell.mp3 (for round end)
+   - warning.mp3 (for 10-second warning)
+
+The file should be an audio format like .mp3, .wav, or .ogg
+

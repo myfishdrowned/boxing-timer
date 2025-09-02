@@ -1,0 +1,14 @@
+SOUND FILES PLACEHOLDER
+
+This directory is for default sound files.
+
+To add your own sounds:
+1. Replace this file with your audio files
+2. Name them "start.mp3" for round start sounds
+3. Name them "bell.mp3" for round end sounds
+4. Name them "warning.mp3" for 10-second warning sounds
+
+Or use the web interface to upload custom sounds directly!
+
+Supported formats: MP3, WAV, OGG, AAC
+Max file size: 10MB
