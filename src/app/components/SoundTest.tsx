@@ -47,12 +47,7 @@ export function SoundTest() {
           Test Bell Sound
         </button>
         
-        <button
-          onClick={() => testSound('warning')}
-          className="w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg"
-        >
-          Test Warning Sound
-        </button>
+
       </div>
       
       {testResult && (
@@ -66,7 +61,6 @@ export function SoundTest() {
         <ul className="list-disc list-inside">
           <li>/public/sounds/start.mp3</li>
           <li>/public/sounds/bell.mp3</li>
-          <li>/public/sounds/warning.mp3</li>
         </ul>
       </div>
     </div>

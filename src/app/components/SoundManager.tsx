@@ -77,7 +77,7 @@ export function SoundManager({
             type="text"
             value={newSoundName}
             onChange={(e) => setNewSoundName(e.target.value)}
-            placeholder="e.g., bell, warning, buzzer"
+            placeholder="e.g., bell, start, buzzer"
             className="w-full px-3 py-2 bg-black/50 border border-red-500/30 rounded-lg text-white placeholder-red-300 focus:outline-none focus:border-red-500"
           />
         </div>
@@ -149,7 +149,6 @@ export function SoundManager({
           <li>• Upload audio files (MP3, WAV, OGG)</li>
           <li>• Name them &quot;start&quot; for round start sounds</li>
           <li>• Name them &quot;bell&quot; for round end sounds</li>
-          <li>• Name them &quot;warning&quot; for 10-second alerts</li>
           <li>• Max file size: 10MB</li>
           <li>• Check browser console for sound triggers</li>
         </ul>

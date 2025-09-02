@@ -24,8 +24,10 @@ export function Timer({
   customSounds
 }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState(roundTime);
-  const [isWarning, setIsWarning] = useState(false);
+  const [hasCompleted, setHasCompleted] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeLeftRef = useRef(timeLeft);
+  const hasPlayedBellRef = useRef(false);
 
   // Play sound function
   const playSound = useCallback((soundType: string) => {
@@ -41,9 +43,6 @@ export function Timer({
       switch (soundType) {
         case 'bell':
           soundFile = '/sounds/bell.mp3';
-          break;
-        case 'warning':
-          soundFile = '/sounds/warning.mp3';
           break;
         case 'start':
           soundFile = '/sounds/start.mp3';
@@ -64,12 +63,19 @@ export function Timer({
     if (!isRunning) {
       // Reset to initial state when timer is stopped
       setTimeLeft(roundTime);
-      setIsWarning(false);
+      setHasCompleted(false);
+      hasPlayedBellRef.current = false;
     } else {
       // Set time based on current period
       setTimeLeft(isRestPeriod ? restTime : roundTime);
+      hasPlayedBellRef.current = false;
     }
   }, [isRestPeriod, restTime, roundTime, isRunning]);
+
+  // Update ref when timeLeft changes
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
 
   // Play start sound when timer starts or round changes
   useEffect(() => {
@@ -79,33 +85,38 @@ export function Timer({
     }
   }, [isRunning, currentRound, isRestPeriod, playSound]);
 
+  // Handle timer completion
+  useEffect(() => {
+    if (hasCompleted) {
+      onComplete();
+      setHasCompleted(false);
+    }
+  }, [hasCompleted, onComplete]);
+
   // Timer countdown logic
   useEffect(() => {
-    if (isRunning && timeLeft > 0) {
+    // Clear any existing interval first
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    // Start new interval if running and time > 0
+    if (isRunning && timeLeftRef.current > 0) {
       intervalRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           const newTime = prev - 1;
           
-          // Play warning sound at 10 seconds remaining
-          if (newTime === 10) {
-            playSound('warning');
-            setIsWarning(true);
-          }
-          
-          // Play final bell sound at 0 seconds
-          if (newTime === 0) {
+          // Mark as completed when timer reaches 0
+          if (newTime === 0 && !hasPlayedBellRef.current) {
             playSound('bell');
-            setIsWarning(false);
-            onComplete();
+            setHasCompleted(true);
+            hasPlayedBellRef.current = true;
           }
           
           return newTime;
         });
       }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
     }
 
     return () => {
@@ -113,7 +124,7 @@ export function Timer({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, timeLeft, onComplete, playSound]);
+  }, [isRunning, timeLeft]);
 
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
@@ -142,9 +153,7 @@ export function Timer({
 
       {/* Timer Display */}
       <div className="relative mb-8">
-        <div className={`text-8xl md:text-9xl font-bold font-mono transition-all duration-300 ${
-          isWarning ? 'text-yellow-400 animate-pulse' : 'text-white'
-        }`}>
+        <div className="text-8xl md:text-9xl font-bold font-mono transition-all duration-300 text-white">
           {formatTime(timeLeft)}
         </div>
         
@@ -163,13 +172,6 @@ export function Timer({
       <div className="text-xl font-semibold">
         {isRestPeriod ? '🛌 Rest Time' : '🥊 Fight Time'}
       </div>
-      
-      {/* Warning indicator */}
-      {isWarning && (
-        <div className="mt-4 text-yellow-400 text-lg font-semibold animate-pulse">
-          ⚠️ 10 seconds remaining!
-        </div>
-      )}
     </div>
   );
 }
