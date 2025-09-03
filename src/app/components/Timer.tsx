@@ -4,12 +4,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface TimerProps {
   isRunning: boolean;
-  isRestPeriod: boolean;
+  isRestPeriod: boolean;         // true while timing REST, false while timing FIGHT
   roundTime: number;
   restTime: number;
   currentRound: number;
   totalRounds: number;
-  onComplete: () => void;
+  onComplete: () => void;        // parent flips rest<->fight / advances round
   customSounds: { [key: string]: string };
 }
 
@@ -28,49 +28,44 @@ export function Timer({
     [isRestPeriod, restTime, roundTime]
   );
 
-  // Time left (in whole seconds)
   const [timeLeft, setTimeLeft] = useState<number>(getPeriodSeconds());
 
-  // --- Refs for stable interval + timing math ---
+  // timing refs
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const endAtRef = useRef<number | null>(null); // epoch ms when this period ends
-  const remainingRef = useRef<number>(getPeriodSeconds()); // seconds left when pausing
+  const endAtRef = useRef<number | null>(null);
+  const remainingRef = useRef<number>(getPeriodSeconds());
   const hasRungRef = useRef<boolean>(false);
   const prevIsRunningRef = useRef<boolean>(false);
-  const prevIsRestPeriodRef = useRef<boolean>(isRestPeriod);
 
-  // --- Audio: preload/reuse ---
+  // transition tracking to trigger "start" once per fight round
+  const prevIsRestPeriodRef = useRef<boolean>(isRestPeriod);
+  const currentRoundRef = useRef<number>(currentRound);
+  const lastStartKeyRef = useRef<string>('');
+
+  // audio
   const bellAudioRef = useRef<HTMLAudioElement | null>(null);
   const startAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Preload audio on mount (and update if custom changes)
   useEffect(() => {
     const makeAudio = (src: string) => {
       const a = new Audio(src);
       a.preload = 'auto';
       return a;
     };
-
     bellAudioRef.current = makeAudio(customSounds['bell'] || '/sounds/bell.mp3');
     startAudioRef.current = makeAudio(customSounds['start'] || '/sounds/start.mp3');
-
-    // No cleanup needed for HTMLAudioElement
   }, [customSounds]);
 
-  const playSound = useCallback((type: 'bell' | 'start') => {
-    const ref = type === 'bell' ? bellAudioRef.current : startAudioRef.current;
-    if (!ref) return;
+  const play = (el: HTMLAudioElement | null) => {
+    if (!el) return;
+    try { el.currentTime = 0; } catch {}
+    el.play().catch(() => {/* ignore autoplay errors */});
+  };
 
-    // Reset to start in case it was played before
-    try {
-      ref.currentTime = 0;
-    } catch {}
-    ref.play().catch(() => {
-      // Swallow autoplay errors quietly (user gesture constraints)
-    });
-  }, []);
+  const playBell = useCallback(() => play(bellAudioRef.current), []);
+  const playStart = useCallback(() => play(startAudioRef.current), []);
 
-  // --- Start/stop interval helpers ---
+  // interval helpers
   const clearTick = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -89,23 +84,24 @@ export function Timer({
 
       if (secs === 0 && !hasRungRef.current) {
         hasRungRef.current = true;
-        playSound('bell');
-        // Defer onComplete slightly to let sound fire without being cut by state churn
+
+        // 🔔 Only ring the bell when a FIGHT period ends.
+        // If a REST period ends, DO NOT play bell.
+        if (!isRestPeriod) {
+          playBell();
+        }
+
+        // let parent flip to next period/round
         queueMicrotask(() => onComplete());
         clearTick();
       }
-    }, 250); // check 4x/sec for better accuracy without heavy cost
-  }, [clearTick, onComplete, playSound]);
+    }, 250);
+  }, [clearTick, onComplete, playBell, isRestPeriod]);
 
-  // --- Respond to prop changes: new period or new durations ---
-  // If period flips (fight <-> rest) or durations change, reset the countdown.
+  // respond to (period/duration/round) changes
   useEffect(() => {
-    const periodChanged = prevIsRestPeriodRef.current !== isRestPeriod;
-    prevIsRestPeriodRef.current = isRestPeriod;
-
     const newTotal = getPeriodSeconds();
 
-    // If timer is not running, just reset displayed time + remainingRef.
     if (!isRunning) {
       hasRungRef.current = false;
       remainingRef.current = newTotal;
@@ -115,32 +111,44 @@ export function Timer({
       return;
     }
 
-    // If running and the period changed or the duration changed, restart this segment.
+    // running → start a fresh leg
     hasRungRef.current = false;
     remainingRef.current = newTotal;
     endAtRef.current = Date.now() + newTotal * 1000;
     setTimeLeft(newTotal);
     startTick();
-  }, [isRestPeriod, roundTime, restTime, isRunning, getPeriodSeconds, startTick, clearTick]);
+  }, [
+    isRestPeriod,
+    roundTime,
+    restTime,
+    isRunning,
+    currentRound,
+    getPeriodSeconds,
+    startTick,
+    clearTick
+  ]);
 
-  // --- Start/stop based on isRunning toggles (pause/resume) ---
+  // start/pause toggles
   useEffect(() => {
     const wasRunning = prevIsRunningRef.current;
     prevIsRunningRef.current = isRunning;
 
-    // Started running
+    // starting
     if (!wasRunning && isRunning) {
-      // Play start sound only for fight periods
-      if (!isRestPeriod) playSound('start');
-
       hasRungRef.current = false;
-      // If we already have a remaining count (e.g., resume), use it
+
+      // If starting directly into a FIGHT, play start now
+      if (!isRestPeriod) {
+        playStart();
+        lastStartKeyRef.current = `fight-${currentRound}`;
+      }
+
       const seconds = remainingRef.current ?? getPeriodSeconds();
       endAtRef.current = Date.now() + seconds * 1000;
       startTick();
     }
 
-    // Paused
+    // pausing
     if (wasRunning && !isRunning) {
       clearTick();
       if (endAtRef.current != null) {
@@ -150,12 +158,33 @@ export function Timer({
       }
       endAtRef.current = null;
     }
-  }, [isRunning, isRestPeriod, getPeriodSeconds, startTick, clearTick, playSound]);
+  }, [isRunning, isRestPeriod, currentRound, getPeriodSeconds, startTick, clearTick, playStart]);
 
-  // Clear on unmount
+  // ▶️ play "start" when entering a fight period while already running
+  useEffect(() => {
+    if (!isRunning) {
+      prevIsRestPeriodRef.current = isRestPeriod;
+      currentRoundRef.current = currentRound;
+      return;
+    }
+
+    const prevWasRest = prevIsRestPeriodRef.current;
+    const roundChanged = currentRoundRef.current !== currentRound;
+    const key = `fight-${currentRound}`;
+
+    if (!isRestPeriod && (prevWasRest || roundChanged) && lastStartKeyRef.current !== key) {
+      playStart();
+      lastStartKeyRef.current = key;
+    }
+
+    prevIsRestPeriodRef.current = isRestPeriod;
+    currentRoundRef.current = currentRound;
+  }, [isRunning, isRestPeriod, currentRound, playStart]);
+
+  // cleanup
   useEffect(() => clearTick(), [clearTick]);
 
-  // Progress %
+  // helpers
   const getProgress = () => {
     const total = getPeriodSeconds();
     if (total <= 0) return 100;
@@ -187,9 +216,17 @@ export function Timer({
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full bg-gray-700 rounded-full h-3 mt-4" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(getProgress())}>
+        <div
+          className="w-full bg-gray-700 rounded-full h-3 mt-4"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(getProgress())}
+        >
           <div
-            className={`h-3 rounded-full transition-all duration-300 ${isRestPeriod ? 'bg-blue-500' : 'bg-red-500'}`}
+            className={`h-3 rounded-full transition-all duration-300 ${
+              isRestPeriod ? 'bg-blue-500' : 'bg-red-500'
+            }`}
             style={{ width: `${getProgress()}%` }}
           />
         </div>

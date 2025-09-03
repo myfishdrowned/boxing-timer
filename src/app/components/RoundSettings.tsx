@@ -30,14 +30,14 @@ export function RoundSettings({
 
   const handleRoundTimeChange = (value: string) => {
     const time = parseTimeInput(value);
-    if (time > 0 && time <= 1800) { // Max 30 minutes
+    if (time >= 5 && time <= 1800) { // Min 5 seconds, max 30 minutes
       setRoundTime(time);
     }
   };
 
   const handleRestTimeChange = (value: string) => {
     const time = parseTimeInput(value);
-    if (time > 0 && time <= 600) { // Max 10 minutes
+    if (time >= 5 && time <= 600) { // Min 5 seconds, max 10 minutes
       setRestTime(time);
     }
   };
@@ -47,6 +47,7 @@ export function RoundSettings({
     { name: 'Professional', rounds: 12, roundTime: 180, restTime: 60 },
     { name: 'Title Fight', rounds: 12, roundTime: 180, restTime: 60 },
     { name: 'Quick Workout', rounds: 6, roundTime: 120, restTime: 30 },
+    { name: 'Ultra Quick', rounds: 3, roundTime: 10, restTime: 5 },
   ];
 
   return (
@@ -104,7 +105,7 @@ export function RoundSettings({
             className="w-full px-3 py-2 bg-black/50 border border-red-500/30 rounded-lg text-white placeholder-red-300 focus:outline-none focus:border-red-500"
           />
           <p className="text-xs text-red-300 mt-1">
-            Format: MM:SS (max 30:00)
+            Format: MM:SS (min 0:05, max 30:00)
           </p>
         </div>
 
@@ -120,7 +121,7 @@ export function RoundSettings({
             className="w-full px-3 py-2 bg-black/50 border border-red-500/30 rounded-lg text-white placeholder-red-300 focus:outline-none focus:border-red-500"
           />
           <p className="text-xs text-red-300 mt-1">
-            Format: MM:SS (max 10:00)
+            Format: MM:SS (min 0:05, max 10:00)
           </p>
         </div>
       </div>
