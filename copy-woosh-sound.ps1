@@ -24,3 +24,4 @@ Write-Host "Files copied successfully!" -ForegroundColor Green
 Write-Host "Please restart your development server to use the new sounds." -ForegroundColor Yellow
 Read-Host "Press Enter to exit"
 
+

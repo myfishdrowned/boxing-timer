@@ -26,3 +26,4 @@ You can also upload sounds directly through the web interface in the "Custom Sou
 - Open browser console (F12) to see sound trigger messages
 - Upload custom sounds through the web interface to test immediately
 
+
