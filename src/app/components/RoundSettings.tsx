@@ -9,39 +9,55 @@ interface RoundSettingsProps {
   setRestTime: (time: number) => void;
 }
 
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+function Stepper({
+  label,
+  display,
+  onDecrement,
+  onIncrement,
+}: {
+  label: string;
+  display: string;
+  onDecrement: () => void;
+  onIncrement: () => void;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-red-200 mb-2">{label}</label>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onDecrement}
+          className="w-12 h-12 flex items-center justify-center bg-red-700 hover:bg-red-600 active:bg-red-800 text-white text-2xl font-bold rounded-xl touch-manipulation select-none"
+        >
+          −
+        </button>
+        <span className="flex-1 text-center text-xl font-mono font-semibold text-white">
+          {display}
+        </span>
+        <button
+          onClick={onIncrement}
+          className="w-12 h-12 flex items-center justify-center bg-red-700 hover:bg-red-600 active:bg-red-800 text-white text-2xl font-bold rounded-xl touch-manipulation select-none"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function RoundSettings({
   totalRounds,
   setTotalRounds,
   roundTime,
   setRoundTime,
   restTime,
-  setRestTime
+  setRestTime,
 }: RoundSettingsProps) {
-  const formatTimeInput = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const parseTimeInput = (timeString: string) => {
-    const [mins, secs] = timeString.split(':').map(Number);
-    return (mins || 0) * 60 + (secs || 0);
-  };
-
-  const handleRoundTimeChange = (value: string) => {
-    const time = parseTimeInput(value);
-    if (time >= 5 && time <= 1800) { // Min 5 seconds, max 30 minutes
-      setRoundTime(time);
-    }
-  };
-
-  const handleRestTimeChange = (value: string) => {
-    const time = parseTimeInput(value);
-    if (time >= 5 && time <= 600) { // Min 5 seconds, max 10 minutes
-      setRestTime(time);
-    }
-  };
-
   const presetConfigs = [
     { name: 'Amateur', rounds: 3, roundTime: 180, restTime: 60 },
     { name: 'Professional', rounds: 12, roundTime: 180, restTime: 60 },
@@ -53,8 +69,7 @@ export function RoundSettings({
   return (
     <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-6 border border-red-500/20">
       <h3 className="text-2xl font-bold mb-4 text-center">⚙️ Round Settings</h3>
-      
-      {/* Preset Configurations */}
+
       <div className="mb-6">
         <h4 className="text-lg font-semibold mb-3 text-red-200">Quick Presets</h4>
         <div className="grid grid-cols-2 gap-2">
@@ -66,7 +81,7 @@ export function RoundSettings({
                 setRoundTime(preset.roundTime);
                 setRestTime(preset.restTime);
               }}
-              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+              className="px-3 py-3 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-sm font-medium rounded-lg transition-colors duration-200 touch-manipulation"
             >
               {preset.name}
             </button>
@@ -74,70 +89,38 @@ export function RoundSettings({
         </div>
       </div>
 
-      {/* Custom Settings */}
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-red-200 mb-2">
-            Number of Rounds
-          </label>
-          <select
-            value={totalRounds}
-            onChange={(e) => setTotalRounds(Number(e.target.value))}
-            className="w-full px-3 py-2 bg-black/50 border border-red-500/30 rounded-lg text-white focus:outline-none focus:border-red-500"
-          >
-            {[1, 2, 3, 4, 5, 6, 8, 10, 12, 15].map((rounds) => (
-              <option key={rounds} value={rounds}>
-                {rounds} {rounds === 1 ? 'Round' : 'Rounds'}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="space-y-5">
+        <Stepper
+          label="Number of Rounds"
+          display={`${totalRounds} ${totalRounds === 1 ? 'Round' : 'Rounds'}`}
+          onDecrement={() => setTotalRounds(Math.max(1, totalRounds - 1))}
+          onIncrement={() => setTotalRounds(Math.min(20, totalRounds + 1))}
+        />
 
-        <div>
-          <label className="block text-sm font-medium text-red-200 mb-2">
-            Round Duration (MM:SS)
-          </label>
-          <input
-            type="text"
-            value={formatTimeInput(roundTime)}
-            onChange={(e) => handleRoundTimeChange(e.target.value)}
-            placeholder="3:00"
-            className="w-full px-3 py-2 bg-black/50 border border-red-500/30 rounded-lg text-white placeholder-red-300 focus:outline-none focus:border-red-500"
-          />
-          <p className="text-xs text-red-300 mt-1">
-            Format: MM:SS (min 0:05, max 30:00)
-          </p>
-        </div>
+        <Stepper
+          label="Round Duration (30s steps)"
+          display={formatTime(roundTime)}
+          onDecrement={() => setRoundTime(Math.max(30, roundTime - 30))}
+          onIncrement={() => setRoundTime(Math.min(1800, roundTime + 30))}
+        />
 
-        <div>
-          <label className="block text-sm font-medium text-red-200 mb-2">
-            Rest Duration (MM:SS)
-          </label>
-          <input
-            type="text"
-            value={formatTimeInput(restTime)}
-            onChange={(e) => handleRestTimeChange(e.target.value)}
-            placeholder="1:00"
-            className="w-full px-3 py-2 bg-black/50 border border-red-500/30 rounded-lg text-white placeholder-red-300 focus:outline-none focus:border-red-500"
-          />
-          <p className="text-xs text-red-300 mt-1">
-            Format: MM:SS (min 0:05, max 10:00)
-          </p>
-        </div>
+        <Stepper
+          label="Rest Duration (15s steps)"
+          display={formatTime(restTime)}
+          onDecrement={() => setRestTime(Math.max(15, restTime - 15))}
+          onIncrement={() => setRestTime(Math.min(600, restTime + 15))}
+        />
       </div>
 
-      {/* Current Configuration Summary */}
       <div className="mt-6 p-4 bg-black/20 rounded-lg">
         <h5 className="font-semibold text-red-200 mb-2">Current Configuration:</h5>
         <div className="text-sm text-red-300 space-y-1">
           <div>• {totalRounds} rounds</div>
-          <div>• {Math.floor(roundTime / 60)}:{String(roundTime % 60).padStart(2, '0')} per round</div>
-          <div>• {Math.floor(restTime / 60)}:{String(restTime % 60).padStart(2, '0')} rest period</div>
-          <div>• Total time: {Math.floor((roundTime * totalRounds + restTime * (totalRounds - 1)) / 60)}:{String((roundTime * totalRounds + restTime * (totalRounds - 1)) % 60).padStart(2, '0')}</div>
+          <div>• {formatTime(roundTime)} per round</div>
+          <div>• {formatTime(restTime)} rest period</div>
+          <div>• Total: {formatTime(roundTime * totalRounds + restTime * (totalRounds - 1))}</div>
         </div>
       </div>
     </div>
   );
 }
-
-
