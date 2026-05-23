@@ -38,27 +38,37 @@ export function Timer({
   const currentRoundRef = useRef<number>(currentRound);
   const lastStartKeyRef = useRef<string>('');
 
-  const bellAudioRef = useRef<HTMLAudioElement | null>(null);
-  const startAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const bellBufferRef = useRef<AudioBuffer | null>(null);
+  const startBufferRef = useRef<AudioBuffer | null>(null);
 
   useEffect(() => {
-    const makeAudio = (src: string) => {
-      const a = new Audio(src);
-      a.preload = 'auto';
-      return a;
-    };
-    bellAudioRef.current = makeAudio('/sounds/bell.mp3');
-    startAudioRef.current = makeAudio('/sounds/start.mp3');
+    const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioCtx();
+    audioCtxRef.current = ctx;
+
+    const load = (src: string) =>
+      fetch(src).then(r => r.arrayBuffer()).then(buf => ctx.decodeAudioData(buf));
+
+    load('/sounds/bell.mp3').then(b => { bellBufferRef.current = b; }).catch(() => {});
+    load('/sounds/start.mp3').then(b => { startBufferRef.current = b; }).catch(() => {});
+
+    return () => { ctx.close(); };
   }, []);
 
-  const play = (el: HTMLAudioElement | null) => {
-    if (!el) return;
-    try { el.currentTime = 0; } catch {}
-    el.play().catch(() => {});
-  };
+  const playBuffer = useCallback((buffer: AudioBuffer | null) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx || !buffer) return;
+    ctx.resume().then(() => {
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+    }).catch(() => {});
+  }, []);
 
-  const playBell = useCallback(() => play(bellAudioRef.current), []);
-  const playStart = useCallback(() => play(startAudioRef.current), []);
+  const playBell = useCallback(() => playBuffer(bellBufferRef.current), [playBuffer]);
+  const playStart = useCallback(() => playBuffer(startBufferRef.current), [playBuffer]);
 
   const clearTick = useCallback(() => {
     if (intervalRef.current) {
