@@ -15,40 +15,10 @@ const formatTime = (seconds: number) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-function Stepper({
-  label,
-  display,
-  onDecrement,
-  onIncrement,
-}: {
-  label: string;
-  display: string;
-  onDecrement: () => void;
-  onIncrement: () => void;
-}) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-red-200 mb-2">{label}</label>
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onDecrement}
-          className="w-12 h-12 flex items-center justify-center bg-red-700 hover:bg-red-600 active:bg-red-800 text-white text-2xl font-bold rounded-xl touch-manipulation select-none"
-        >
-          −
-        </button>
-        <span className="flex-1 text-center text-xl font-mono font-semibold text-white">
-          {display}
-        </span>
-        <button
-          onClick={onIncrement}
-          className="w-12 h-12 flex items-center justify-center bg-red-700 hover:bg-red-600 active:bg-red-800 text-white text-2xl font-bold rounded-xl touch-manipulation select-none"
-        >
-          +
-        </button>
-      </div>
-    </div>
-  );
-}
+const roundTimeOptions = Array.from({ length: 60 }, (_, i) => (i + 1) * 30); // 0:30 to 30:00
+const restTimeOptions = Array.from({ length: 20 }, (_, i) => (i + 1) * 30);  // 0:30 to 10:00
+
+const selectClass = "w-full px-3 py-3 bg-black/50 border border-red-500/30 rounded-lg text-white text-base focus:outline-none focus:border-red-500";
 
 export function RoundSettings({
   totalRounds,
@@ -63,7 +33,7 @@ export function RoundSettings({
     { name: 'Professional', rounds: 12, roundTime: 180, restTime: 60 },
     { name: 'Title Fight', rounds: 12, roundTime: 180, restTime: 60 },
     { name: 'Quick Workout', rounds: 6, roundTime: 120, restTime: 30 },
-    { name: 'Ultra Quick', rounds: 3, roundTime: 10, restTime: 5 },
+    { name: 'Ultra Quick', rounds: 3, roundTime: 60, restTime: 30 },
   ];
 
   return (
@@ -89,27 +59,45 @@ export function RoundSettings({
         </div>
       </div>
 
-      <div className="space-y-5">
-        <Stepper
-          label="Number of Rounds"
-          display={`${totalRounds} ${totalRounds === 1 ? 'Round' : 'Rounds'}`}
-          onDecrement={() => setTotalRounds(Math.max(1, totalRounds - 1))}
-          onIncrement={() => setTotalRounds(Math.min(20, totalRounds + 1))}
-        />
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-red-200 mb-2">Number of Rounds</label>
+          <select
+            value={totalRounds}
+            onChange={(e) => setTotalRounds(Number(e.target.value))}
+            className={selectClass}
+          >
+            {[1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20].map((r) => (
+              <option key={r} value={r}>{r} {r === 1 ? 'Round' : 'Rounds'}</option>
+            ))}
+          </select>
+        </div>
 
-        <Stepper
-          label="Round Duration (30s steps)"
-          display={formatTime(roundTime)}
-          onDecrement={() => setRoundTime(Math.max(30, roundTime - 30))}
-          onIncrement={() => setRoundTime(Math.min(1800, roundTime + 30))}
-        />
+        <div>
+          <label className="block text-sm font-medium text-red-200 mb-2">Round Duration</label>
+          <select
+            value={roundTime}
+            onChange={(e) => setRoundTime(Number(e.target.value))}
+            className={selectClass}
+          >
+            {roundTimeOptions.map((s) => (
+              <option key={s} value={s}>{formatTime(s)}</option>
+            ))}
+          </select>
+        </div>
 
-        <Stepper
-          label="Rest Duration (15s steps)"
-          display={formatTime(restTime)}
-          onDecrement={() => setRestTime(Math.max(15, restTime - 15))}
-          onIncrement={() => setRestTime(Math.min(600, restTime + 15))}
-        />
+        <div>
+          <label className="block text-sm font-medium text-red-200 mb-2">Rest Duration</label>
+          <select
+            value={restTime}
+            onChange={(e) => setRestTime(Number(e.target.value))}
+            className={selectClass}
+          >
+            {restTimeOptions.map((s) => (
+              <option key={s} value={s}>{formatTime(s)}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="mt-6 p-4 bg-black/20 rounded-lg">
