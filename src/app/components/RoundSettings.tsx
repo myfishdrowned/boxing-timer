@@ -43,7 +43,7 @@ export function RoundSettings({
   };
 
   const presetConfigs = [
-    { name: 'Amateur', rounds: 3, roundTime: 120, restTime: 60 },
+    { name: 'Amateur', rounds: 3, roundTime: 180, restTime: 60 },
     { name: 'Professional', rounds: 12, roundTime: 180, restTime: 60 },
     { name: 'Title Fight', rounds: 12, roundTime: 180, restTime: 60 },
     { name: 'Quick Workout', rounds: 6, roundTime: 120, restTime: 30 },
