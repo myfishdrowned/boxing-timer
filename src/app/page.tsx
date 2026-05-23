@@ -2,44 +2,34 @@
 
 import { useState, useEffect } from 'react';
 import { Timer } from './components/Timer';
-import { SoundManager } from './components/SoundManager';
 import { RoundSettings } from './components/RoundSettings';
-import { SoundTest } from './components/SoundTest';
 
 export default function Home() {
   const [isRunning, setIsRunning] = useState(false);
   const [currentRound, setCurrentRound] = useState(1);
   const [totalRounds, setTotalRounds] = useState(12);
-  const [roundTime, setRoundTime] = useState(180); // 3 minutes in seconds
-  const [restTime, setRestTime] = useState(60); // 1 minute in seconds
+  const [roundTime, setRoundTime] = useState(180);
+  const [restTime, setRestTime] = useState(60);
   const [isRestPeriod, setIsRestPeriod] = useState(false);
-  const [customSounds, setCustomSounds] = useState<{ [key: string]: string }>({});
 
   const [pendingAction, setPendingAction] = useState<'next-round' | 'rest-period' | 'complete' | null>(null);
 
   const handleTimerComplete = () => {
     if (isRestPeriod) {
-      // Rest period ended, start next round
       if (currentRound + 1 > totalRounds) {
-        // All rounds completed
         setPendingAction('complete');
       } else {
-        // Start next round
         setPendingAction('next-round');
       }
     } else {
-      // Round ended, start rest period
       if (currentRound < totalRounds) {
-        // More rounds to go
         setPendingAction('rest-period');
       } else {
-        // Last round completed
         setPendingAction('complete');
       }
     }
   };
 
-  // Handle pending actions with useEffect to avoid state updates during render
   useEffect(() => {
     if (pendingAction === 'next-round') {
       setIsRestPeriod(false);
@@ -74,31 +64,15 @@ export default function Home() {
     setIsRestPeriod(false);
   };
 
-  const addCustomSound = (name: string, audioUrl: string) => {
-    setCustomSounds(prev => ({
-      ...prev,
-      [name]: audioUrl
-    }));
-  };
-
-  const removeCustomSound = (name: string) => {
-    setCustomSounds(prev => {
-      const newSounds = { ...prev };
-      delete newSounds[name];
-      return newSounds;
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-900 text-white">
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-8">
           <h1 className="text-4xl md:text-6xl font-bold mb-2">🥊 Boxing Timer</h1>
-          <p className="text-xl text-red-200">Professional boxing timer with custom sounds</p>
+          <p className="text-xl text-red-200">Professional boxing timer</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Timer Display */}
           <div className="lg:col-span-2">
             <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-8 border border-red-500/20">
               <Timer
@@ -109,9 +83,8 @@ export default function Home() {
                 currentRound={currentRound}
                 totalRounds={totalRounds}
                 onComplete={handleTimerComplete}
-                customSounds={customSounds}
               />
-              
+
               <div className="flex justify-center gap-4 mt-8">
                 {!isRunning ? (
                   <button
@@ -140,7 +113,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Settings Panel */}
           <div className="space-y-6">
             <RoundSettings
               totalRounds={totalRounds}
@@ -150,14 +122,6 @@ export default function Home() {
               restTime={restTime}
               setRestTime={setRestTime}
             />
-            
-            <SoundManager
-              customSounds={customSounds}
-              addCustomSound={addCustomSound}
-              removeCustomSound={removeCustomSound}
-            />
-            
-            <SoundTest />
           </div>
         </div>
       </div>
